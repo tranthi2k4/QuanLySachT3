@@ -1,44 +1,72 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.Book;
-import com.example.demo.service.BookService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-@RestController
-@RequestMapping("/api/books")
+@Controller
+@RequestMapping("/books")
 public class BookController {
 
-    @Autowired
-    private BookService bookService;
+    private List<Book> books = new ArrayList<>();
+
+    public BookController() {
+        books.add(new Book(1, "Spring Boot", "Huy Cuong"));
+        books.add(new Book(2, "Java Core", "Tuan Anh"));
+    }
 
     @GetMapping
-    public List<Book> getAllBooks() {
-        return bookService.getAllBooks();
+    public String listBooks(Model model) {
+        model.addAttribute("books", books);
+        return "book/list";
     }
 
-    @GetMapping("/{id}")
-    public Book getBookById(@PathVariable int id) {
-        return bookService.getBookById(id);
+    @GetMapping("/add")
+    public String addBookForm(Model model) {
+        model.addAttribute("book", new Book());
+        return "book/add";
     }
 
-    @PostMapping
-    public String addBook(@RequestBody Book book) {
-        bookService.addBook(book);
-        return "Book added successfully!";
+    @PostMapping("/add")
+    public String addBook(@ModelAttribute("book") Book book) {
+        if (!books.isEmpty()) {
+            book.setId(books.get(books.size() - 1).getId() + 1);
+        } else {
+            book.setId(1);
+        }
+        books.add(book);
+        return "redirect:/books";
     }
 
-    @PutMapping("/{id}")
-    public String updateBook(@PathVariable int id, @RequestBody Book updatedBook) {
-        bookService.updateBook(id, updatedBook);
-        return "Book updated successfully!";
+    @GetMapping("/edit/{id}")
+    public String editBookForm(@PathVariable("id") int id, Model model) {
+        Optional<Book> book = books.stream().filter(b -> b.getId() == id).findFirst();
+        if (book.isPresent()) {
+            model.addAttribute("book", book.get());
+            return "book/edit";
+        }
+        return "redirect:/books";
     }
 
-    @DeleteMapping("/{id}")
-    public String deleteBook(@PathVariable int id) {
-        bookService.deleteBook(id);
-        return "Book deleted successfully!";
+    @PostMapping("/edit")
+    public String editBook(@ModelAttribute("book") Book updatedBook) {
+        for (int i = 0; i < books.size(); i++) {
+            if (books.get(i).getId() == updatedBook.getId()) {
+                books.set(i, updatedBook);
+                break;
+            }
+        }
+        return "redirect:/books";
+    }
+
+    @GetMapping("/delete/{id}")
+    public String deleteBook(@PathVariable("id") int id) {
+        books.removeIf(b -> b.getId() == id);
+        return "redirect:/books";
     }
 }
